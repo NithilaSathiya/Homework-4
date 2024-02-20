@@ -1,0 +1,122 @@
+---
+title: "Homework 4"
+author: "Nithila Sathiya: ns37382"
+date: "2024-02-18"
+output: pdf_document
+---
+Github Link: 
+
+```{r global_options, echo=FALSE, message = FALSE}
+knitr::opts_chunk$set(fig.height=3, fig.width=5.5, warning=FALSE, tidy=TRUE, tidy.opts=list(width.cutoff=60))
+library(tidyverse)
+library(mosaic)
+```
+
+# Problem 1
+
+## Part A
+```{r}
+gas <- read.csv("gasprices.csv")
+boot_comp = do(10000) * diffmean(Price ~ Competitors, data = resample(gas))
+conf_comp <- confint(boot_comp, level = 0.95)
+```
+Gas stations do not charge more if they lack direct competition in sight. By bootstrapping and finding the difference in mean prices for gas stations with competitors and gas stations without, we found the 95% confidence interval of `r round(conf_comp[, 2], 5)` to `r round(conf_comp[, 3], 5)`. The interval is incredibly small, demonstrating a small difference in mean between the gas stations with competitors and gas stations without. However, this theory is unsupported by the data since the confidence interval includes 0, demonstrating statistical insignificance.
+
+## Part B
+```{r}
+boot_area = do(10000) * lm(Price ~ Income, data = resample(gas))
+conf_area <- confint(boot_area, level = 0.95)
+```
+The higher the income is in a given area, the higher the gas price. By bootstrapping a linear model and calculating the confidence interval of `r conf_area[2,2]` to `r conf_area[2,3]`, we can conclude with 95% confidence that the change in gas prices lies between this interval as the income goes up. The interval is incredibly small, demonstrating a marginal difference however it is statistically significant since the interval does not contain 0.
+
+## Part C
+```{r}
+boot_stop = do(10000) * diffmean(Price ~ Stoplight, data = resample(gas))
+conf_stop <- confint(boot_stop, level = 0.95)
+```
+The theory claims that gas stations with stoplights charge more. By bootstrapping and calculating the confidence interval of the difference in mean prices of gas stations next to a stoplight and gas stations not, we found the 95% confidence interval of `r round(conf_stop[, 2], 5)` to `r round(conf_stop[, 3], 5)`. The interval contains 0 so the difference in mean prices is not statistically significant, and hence the theory is unsupported by the data.
+
+## Part D
+```{r}
+boot_road = do(10000) * diffmean(Price ~ Highway, data = resample(gas))
+conf_road <- confint(boot_road, level = 0.95)
+```
+The theory claims gas stations with direct highway access charge more. By bootstrapping and calculating the 95% confidence interval of the difference of the mean price between gas stations near a highway and those that weren't, we found the interval `r round(conf_road[,2], 5)` to `r round(conf_road[,3], 5)`. Although the difference is small in scale, the interval difference is large. Since the confidence interval does not pass 0, the interval is statistically significant and supports the theory since the difference in mean is a small positive.
+
+## Part E
+```{r}
+gas_shell = gas %>%
+  mutate(yesShell = ifelse(Brand == "Shell", "Y", "N"))
+boot_shell = do(10000) * diffmean(Price ~ yesShell, data = resample(gas_shell))
+conf_shell <- confint(boot_shell, level = 0.95)
+```
+The theory is Shell charges more than all other non-Shell brands. By bootstrapping and finding the 95% confidence interval of the difference in mean of prices in Shell versus non-Shell brands, the difference in prices is between `r round(conf_shell[,2], 5)` to `r round(conf_shell[,3], 5)` with 95% confidence. The interval passes 0, demonstrating statistical insignificance and proving the theory is unsupported by the data.
+
+# Problem 2
+
+## Part A
+```{r}
+car <- read.csv("sclass.csv")
+
+car_sort = car %>%
+  filter(year == 2011 & trim == "63 AMG")
+boot_mile_used = do(10000) * diffmean(mileage ~ isOneOwner, data = resample(car_sort))
+conf_mile <- confint(boot_mile_used, level = 0.95)
+```
+The 95% confidence interval of the difference in mean mileage of used versus new cars for 2011 S-Class 63 AMG vehicles is `r round(conf_mile[, 2], 2)` to `r round(conf_mile[, 3], 2)`.
+## Part B
+```{r}
+car_sort1 = car %>%
+  filter(year == 2014 & trim == "550")
+car_sort1 = car_sort1 %>%
+  mutate(isBlack = ifelse(color == "Black", "TRUE", "FALSE"))
+boot_car_black = do(10000) * prop(~isBlack, data = resample(car_sort1)) 
+conf_black <-confint(boot_car_black, level = 0.95)
+lower_black = (round(conf_black[, 2] * 100, 2))
+upper_black = (round(conf_black[, 3] * 100, 2))
+```
+The 95% confidence interval of the difference in proportions of all 2014 S-Class 550s that were painted black is `r lower_black`% to `r upper_black`%. 
+
+# Problem 3
+
+## Part A
+```{r}
+tv <- read.csv("nbc_pilotsurvey.csv")
+
+tv_sort = tv %>%
+  filter(Show == "Living with Ed" | Show == "My Name is Earl")
+boot_tv_happy = do(10000) * diffmean(Q1_Happy ~ Show, data = resample(tv_sort))
+happy_tv_confint <- t.test(boot_tv_happy)$conf.int
+```
+The question is whether there is evidence that one show consistently produces a higher mean happy response among viewers. The shows we are testing is "Living with Ed" and "My Name is Earl". We calculated a large-sample confidence inteval by conducting a t-test which resulted in: `r round(happy_tv_confint[1], 4)` to `r round(happy_tv_confint[2], 4)`. This interval demonstrates statistical significance as the interval does not pass through 0. So with 95% confidence of the difference in mean of happiness, the data supports that one show consistently produces a mean happier rating.
+
+## Part B
+```{r}
+tv_sort1 = tv %>%
+  filter(Show == "The Biggest Loser" | Show == "The Apprentice: Los Angeles")
+boot_tv_annoy = do(10000) * diffmean(Q1_Annoyed ~ Show, data = resample(tv_sort1))
+annoy_tv_confint <- round(t.test(boot_tv_annoy)$conf.int, 4)
+```
+The question tested is which show makes viewers more annoyed? "The Biggest Loser" or "The Apprentice: Los Angeles"? Through calculating the 95% confidence interval by conducting a large-sample t-test, the mean level of annoyance between two shows is `r annoy_tv_confint[1]` to `r annoy_tv_confint[2]` with 95% confidence. The interval shows a very small difference between the lower and upper bounds, but it does not pass through 0 meaning it is statistically significant and supports the question posed. This means that there is a show that produced more annoyance among viewers, "The Apprentice: Los Angeles".
+
+## Part C
+```{r}
+tv_sort2 = tv %>%
+  filter(Show == "Dancing with the Stars")
+tv_sort2 = tv_sort2 %>%
+  mutate(isConfused = ifelse(Q2_Confusing >= 4, "TRUE", "FALSE")) 
+conf_tv <- round(prop.test(tv_show2$isConfused, tv_show2$Q2_Confusing)$conf.int, 4)
+```
+The question posed is what proportion of American TV watchers would rate >=4 on the confusing question. First, sorting the data set to "Dancing with the Stars" and mutating to create a new column that shows whether or not the confusing score is >=4 allows for an easier calculation. Then by conducting a large-sample proportion test and finding the 95% confidence interval of the proportion of those who would rate 4 or more to the confusing question is between `r conf_tv[1] * 100`% and `r conf_tv[2] * 100`%. 
+
+# Problem 4
+```{r}
+ebay <- read.csv("ebay.csv")
+
+ebay_sort = ebay %>%
+  mutate(revenue_ratio = rev_after/rev_before)
+boot_ebay = do(10000) * diffmean(revenue_ratio ~ adwords_pause, data = resample(ebay_sort))
+ebay_conf <- confint(boot_ebay, level = 0.95)
+```
+We are trying to find the difference in mean revenue ratio between the treatment DMAs (market areas that stopped advertising on Google) and control DMAs (those who continued as is and advertised on Google). To find the difference the data was sorted to calculate revenue ratio and then a bootstrap of the difference in mean was calculated between the revenue_ratio and adwords_pause variables. The confidence interval was then calculated using the bootstrapped sample. The difference in mean revenue ratio between the treatment and the control is `r round(ebay_conf[,2], 4)` to `r round(ebay_conf[,3], 4)` with 95% confidence. Since the confidence interval does not pass 0, the answer is supported by the confidence interval and is statistically significant. Since the difference in mean is negative it demonstrates that after treatment Ebay experienced a larger difference in revenue than the control.
+
